@@ -1,36 +1,190 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 数字信号处理 AI 教学 Demo
 
-## Getting Started
+这是一个面向课程建设申报与课堂展示的学生端网页 Demo，聚焦《数字信号处理》课程中“采样、混叠与重建”章节的互动式学习体验。项目以“AI 赋能教学”为主线，将参数可视化实验、对话式助教、实验解读和过程评价整合到同一套界面中，突出教学模式创新与教学效能提升。
 
-First, run the development server:
+## 当前设计定位
+
+- 面向项目申报、汇报答辩和手机端现场展示。
+- 当前只重点实现 1 个章节: `采样、混叠与重建`。
+- 其他章节已在页面中预留扩展入口，便于后续继续扩展整门课程。
+- 页面风格偏简洁的 Apple / Bento Grid 方向，适配手机浏览。
+- 头图区已切换为更克制的课程标题样式，并接入天津大学电气自动化与信息工程学院院标。
+
+## 当前页面结构
+
+### 1. 头图区
+
+- 标题仅保留为“数字信号处理”。
+- 右上角展示学院院标，图片来源于 `public/academy-seal.jpg`。
+- 不再堆叠说明性文字，整体更适合正式展示。
+
+### 2. 章节入口区
+
+- 当前章节: `采样、混叠与重建`
+- 预留章节:
+  - `信号与系统`
+  - `DFT 与频谱分析`
+  - `数字滤波`
+
+这些卡片目前用于展示课程整体结构与可扩展性，不承担复杂交互。
+
+### 3. 实验区
+
+实验区已经调整为“同屏参数控制 + 单主视图切换”的结构。
+
+- 左侧主视图支持 `时域 / 频域` 切换。
+- 右侧保持参数调节区域始终可见。
+- 参数调节后，图形和状态会立即联动更新。
+
+当前可调参数包括:
+
+- 信号频率
+- 采样率
+- 振幅
+- 相位
+- 噪声强度
+
+### 4. AI 实验解读区
+
+- 根据当前实验参数请求模型生成实验解读卡片。
+- 输出内容围绕“当前现象”“原因解释”“下一步建议”展开。
+- 目的是把抽象参数变化翻译成学生更容易理解的语言。
+
+### 5. AI 学习助手区
+
+- 提供对话式问答。
+- 会将当前实验状态一并发送给模型。
+- 适合学生围绕混叠、采样率、Nyquist 条件等现象进行追问。
+
+### 6. 过程评价区
+
+- 根据当前实验设置和学习轨迹生成过程性评价。
+- 强调“学习过程分析”而不是只给结果判断。
+
+## 当前交互特点
+
+### 时域视图
+
+- 展示连续信号、采样点和重建趋势。
+- 适合观察采样点密度变化、波形形态变化和重建效果。
+
+### 频域视图
+
+- 展示原始频率、Nyquist 边界、混叠频率和采样率位置。
+- 适合解释为什么学生会“看见一个低频假象”。
+
+### 手机端导航
+
+- 使用底部 Tab Bar 切换 `总览 / 实验 / 助教 / 评价`。
+- 目前只有总览显示头图与章节入口。
+- 切换到其他栏目时，不再重复展示头图区。
+
+## AI 接入设计
+
+项目当前通过阿里云百炼兼容接口接入模型，代码位于 `src/lib/ai.ts`。
+
+### 已实现的接口
+
+- `POST /api/chat`
+  - 对话式 AI 助教
+- `POST /api/coach`
+  - AI 实验解读
+- `POST /api/evaluate`
+  - AI 学习评价
+
+### 当前环境变量
+
+- `DASHSCOPE_API_KEY`
+- `DASHSCOPE_BASE_URL`
+- `DEEPSEEK_MODEL`
+
+默认基于兼容 OpenAI SDK 的方式调用模型，当前配置适合接 DeepSeek 系列模型。
+
+## 技术栈
+
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- OpenAI Node SDK 兼容调用方式
+
+## 关键文件
+
+- `src/components/course-demo.tsx`
+  - 主页面与主要交互逻辑
+- `src/lib/dsp.ts`
+  - 数字信号处理相关的可视化计算逻辑
+- `src/lib/ai.ts`
+  - 模型调用与 AI 卡片生成逻辑
+- `src/app/api/chat/route.ts`
+  - 对话接口
+- `src/app/api/coach/route.ts`
+  - 实验解读接口
+- `src/app/api/evaluate/route.ts`
+  - 学习评价接口
+- `public/academy-seal.jpg`
+  - 当前头图区使用的学院院标
+
+## 本地运行
+
+### 1. 安装依赖
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 配置环境变量
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+copy .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+然后在 `.env.local` 中填写:
 
-## Learn More
+```env
+DASHSCOPE_API_KEY=你的Key
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+DEEPSEEK_MODEL=deepseek-v3.2
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 3. 开发模式
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+建议优先使用 webpack 开发模式:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run dev:webpack
+```
 
-## Deploy on Vercel
+### 4. 生产预览 / 手机局域网演示
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run build
+npm run start:lan
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+说明:
+
+- 当前 `build` 脚本已固定为 `next build --webpack`，用于避免 Turbopack 生产构建下偶发缺失 `BUILD_ID` 的问题。
+- 如需在手机上查看，请保证手机与电脑处于同一局域网。
+
+## 当前完成度
+
+已完成:
+
+- 单章节学生端展示页
+- 课程章节入口布局
+- 时域 / 频域切换式实验主视图
+- 参数联动可视化
+- AI 实验解读
+- AI 对话助教
+- AI 过程评价
+- 手机端底部导航
+- 学院院标接入
+
+后续可继续扩展:
+
+- 课程知识库接入
+- 其他章节实验页
+- 更多线上实验
+- 教师端管理与教学分析
+- 课堂数据留痕与评价闭环
