@@ -23,7 +23,7 @@ const chapterCards: ChapterCard[] = [
   {
     id: "sampling",
     title: "采样、混叠与重建",
-    status: "当前主场景",
+    status: "已上线",
     description: "用一个高反馈实验页面，让学生同时看到原始信号、采样点和重建结果。",
   },
   {
@@ -1606,13 +1606,15 @@ function EvaluationPanel({
 }) {
   return (
     <Panel>
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-3">
-          <SectionTitle eyebrow="过程评价" title="学习轨迹与智能诊断" />
-          <p className="text-sm leading-7 text-slate-600">
-            点击按钮后，系统会根据当前实验状态和本轮操作轨迹生成过程性评价，而不是只看答对或答错。
-          </p>
-        </div>
+      <div className="space-y-3">
+        <SectionTitle eyebrow="过程评价" title="学习轨迹与智能诊断" />
+        <p className="text-sm leading-7 text-slate-600">
+          点击按钮后，系统会根据
+          <strong className="font-semibold text-slate-900">当前实验状态</strong>
+          和
+          <strong className="font-semibold text-slate-900">本轮操作轨迹</strong>
+          生成过程性评价。
+        </p>
         <button
           type="button"
           onClick={() => void onRequestEvaluation()}
@@ -1740,12 +1742,12 @@ function KnowledgeBaseButton() {
       href="/knowledge-base"
       aria-label="打开知识库"
       title="知识库"
-      className="group relative inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/80 bg-[linear-gradient(135deg,rgba(15,23,42,0.96)_0%,rgba(37,99,235,0.9)_100%)] shadow-[0_14px_30px_rgba(15,23,42,0.16)] transition hover:scale-[1.03] hover:shadow-[0_18px_36px_rgba(37,99,235,0.24)]"
+      className="group relative inline-flex h-12 shrink-0 items-center gap-2 overflow-hidden rounded-[18px] border border-white/80 bg-[linear-gradient(135deg,rgba(15,23,42,0.96)_0%,rgba(37,99,235,0.9)_100%)] px-4 shadow-[0_14px_30px_rgba(15,23,42,0.16)] transition hover:scale-[1.03] hover:shadow-[0_18px_36px_rgba(37,99,235,0.24)]"
     >
       <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.28),transparent_55%)]" />
       <svg
         viewBox="0 0 24 24"
-        className="relative h-6 w-6 text-white transition group-hover:scale-105"
+        className="relative h-5 w-5 text-white transition group-hover:scale-105"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.8"
@@ -1760,7 +1762,7 @@ function KnowledgeBaseButton() {
         <path d="M15.5 15.5 20 20" />
         <circle cx="13.5" cy="13.5" r="2.5" />
       </svg>
-      <span className="sr-only">知识库</span>
+      <span className="relative text-sm font-semibold tracking-wide text-white">知识库</span>
     </Link>
   );
 }

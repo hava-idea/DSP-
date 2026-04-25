@@ -80,7 +80,7 @@ export function KnowledgeBase() {
                 <a
                   href={entry.fileUrl}
                   download
-                  className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  className="rounded-full bg-blue-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-900"
                 >
                   下载
                 </a>
