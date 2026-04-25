@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateChatReply } from "@/lib/ai";
-import { type ChatMessage, type ExperimentState } from "@/lib/dsp";
+import { type ChatMessage } from "@/lib/dsp";
 
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
+      chapterId: string;
       messages: ChatMessage[];
-      experimentState: ExperimentState;
+      context: unknown;
     };
 
-    const content = await generateChatReply(body.messages, body.experimentState);
+    const content = await generateChatReply(body.messages, body.chapterId, body.context);
     return NextResponse.json({ content });
   } catch (error) {
     const message =

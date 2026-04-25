@@ -55,12 +55,45 @@ textarea {
 }
 
 .apple-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: var(--card);
   border: 1px solid var(--card-border);
   box-shadow:
     0 20px 60px rgba(15, 23, 42, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(24px);
+}
+
+.badge-surface,
+.badge-surface-dark {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.apple-card::after {
+  content: "";
+  position: absolute;
+  top: -32px;
+  right: -28px;
+  width: 408px;
+  height: 408px;
+  background-image: url("/tju-badge-white.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.15;
+}
+
+.apple-card > *,
+.badge-surface > *,
+.badge-surface-dark > * {
+  position: relative;
+  z-index: 1;
 }
 
 .soft-pill {

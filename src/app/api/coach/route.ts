@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateCoachCard } from "@/lib/ai";
-import { type ExperimentState } from "@/lib/dsp";
 
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
-      experimentState: ExperimentState;
+      chapterId: string;
+      context: unknown;
       learningMoments: string[];
     };
 
-    const card = await generateCoachCard(body.experimentState, body.learningMoments);
+    const card = await generateCoachCard(body.chapterId, body.context, body.learningMoments);
     return NextResponse.json({ card });
   } catch (error) {
     const message =

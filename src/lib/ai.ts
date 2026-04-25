@@ -1,10 +1,5 @@
-﻿import OpenAI from "openai";
-import {
-  describeSamplingStatus,
-  generateStudentJourney,
-  type ExperimentState,
-  type GuidanceCard,
-} from "@/lib/dsp";
+import OpenAI from "openai";
+import { type GuidanceCard } from "@/lib/dsp";
 
 type DashScopeChatParams = OpenAI.ChatCompletionCreateParamsNonStreaming & {
   enable_thinking?: boolean;
@@ -13,6 +8,12 @@ type DashScopeChatParams = OpenAI.ChatCompletionCreateParamsNonStreaming & {
 const model = process.env.DEEPSEEK_MODEL || "deepseek-v3.2";
 const baseURL =
   process.env.DASHSCOPE_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1";
+const chapterTitles: Record<string, string> = {
+  sampling: "采样、混叠与重建",
+  dft: "DFT 与频谱分析",
+  filter: "数字滤波",
+  system: "信号与系统",
+};
 
 function createClient() {
   const apiKey = process.env.DASHSCOPE_API_KEY;
@@ -32,11 +33,16 @@ async function createCompletion(params: DashScopeChatParams) {
   return client.chat.completions.create(params);
 }
 
+function chapterTitle(chapterId: string) {
+  return chapterTitles[chapterId] ?? "数字信号处理";
+}
+
 export async function generateChatReply(
   messages: Array<{ role: "user" | "assistant"; content: string }>,
-  experimentState: ExperimentState,
+  chapterId: string,
+  context: unknown,
 ) {
-  const status = describeSamplingStatus(experimentState);
+  const title = chapterTitle(chapterId);
 
   const response = await createCompletion({
     model,
@@ -45,15 +51,11 @@ export async function generateChatReply(
       {
         role: "system",
         content:
-          "你是数字信号处理课程《采样、混叠与重建》章节的 AI 助教。请用简洁、启发式、教学友好的中文回答学生问题。回答时要结合当前实验参数，不要空泛复述教材，也不要直接代做。",
+          `你是数字信号处理课程《${title}》章节的 AI 助教。请用简洁、启发式、教学友好的中文回答学生问题。回答时要结合当前实验参数和实验现象，不要空泛复述教材，也不要直接代做。`,
       },
       {
         role: "system",
-        content: `当前实验状态：${JSON.stringify({
-          ...experimentState,
-          samplingStatus: status.label,
-          aliasFrequency: status.aliasFrequency,
-        })}`,
+        content: `当前实验上下文：${JSON.stringify(context)}`,
       },
       ...messages,
     ],
@@ -64,10 +66,11 @@ export async function generateChatReply(
 }
 
 export async function generateCoachCard(
-  experimentState: ExperimentState,
+  chapterId: string,
+  context: unknown,
   learningMoments: string[],
 ) {
-  const status = describeSamplingStatus(experimentState);
+  const title = chapterTitle(chapterId);
 
   const response = await createCompletion({
     model,
@@ -79,13 +82,12 @@ export async function generateCoachCard(
       {
         role: "system",
         content:
-          "你是数字信号处理课程实验教练。请根据当前实验参数，返回 JSON。字段必须是 title, summary, observations, nextStep。observations 必须是字符串数组。JSON。",
+          `你是数字信号处理课程《${title}》的实验教练。请根据当前实验参数返回 JSON。字段必须是 title, summary, observations, nextStep。observations 必须是字符串数组。summary 要解释当前现象，nextStep 要给出下一步实验建议。JSON。`,
       },
       {
         role: "user",
         content: JSON.stringify({
-          experimentState,
-          samplingStatus: status,
+          context,
           learningMoments,
         }),
       },
@@ -96,9 +98,8 @@ export async function generateCoachCard(
   return parseGuidanceCard(response.choices[0]?.message?.content);
 }
 
-export async function generateEvaluationCard(experimentState: ExperimentState) {
-  const status = describeSamplingStatus(experimentState);
-  const journey = generateStudentJourney(experimentState);
+export async function generateEvaluationCard(chapterId: string, context: unknown) {
+  const title = chapterTitle(chapterId);
 
   const response = await createCompletion({
     model,
@@ -110,15 +111,11 @@ export async function generateEvaluationCard(experimentState: ExperimentState) {
       {
         role: "system",
         content:
-          "你是数字信号处理课程的学习评价助手。请输出 JSON，字段必须是 title, summary, observations, nextStep。observations 必须是字符串数组。评价要体现过程性学习分析。JSON。",
+          `你是数字信号处理课程《${title}》的学习评价助手。请输出 JSON，字段必须是 title, summary, observations, nextStep。observations 必须是字符串数组。评价要体现过程性学习分析，而不是只给结论。JSON。`,
       },
       {
         role: "user",
-        content: JSON.stringify({
-          experimentState,
-          samplingStatus: status,
-          journey,
-        }),
+        content: JSON.stringify({ context }),
       },
     ],
     enable_thinking: true,
