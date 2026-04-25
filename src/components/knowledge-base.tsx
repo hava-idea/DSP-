@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -31,17 +31,16 @@ export function KnowledgeBase() {
                 href="/"
                 className="soft-pill inline-flex rounded-full px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
               >
-                返回
+                杩斿洖
               </Link>
               <h1 className="text-3xl font-semibold tracking-tight text-slate-950 lg:text-5xl">
-                知识库
-              </h1>
+                鐭ヨ瘑搴?              </h1>
             </div>
 
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="搜索资料"
+              placeholder="鎼滅储璧勬枡"
               className="w-full max-w-[320px] rounded-full border border-white/80 bg-white/78 px-4 py-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none transition placeholder:text-slate-400 focus:border-blue-200 focus:ring-4 focus:ring-blue-100"
             />
           </div>
@@ -80,7 +79,7 @@ export function KnowledgeBase() {
                 <a
                   href={entry.fileUrl}
                   download
-                  className="rounded-full bg-blue-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-900"
+                  className="rounded-full bg-blue-950 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-blue-900"
                 >
                   下载
                 </a>
@@ -91,10 +90,10 @@ export function KnowledgeBase() {
 
         {filteredEntries.length === 0 ? (
           <section className="apple-card rounded-[30px] px-6 py-10 text-center text-sm text-slate-500">
-            未找到相关资料
-          </section>
+            鏈壘鍒扮浉鍏宠祫鏂?          </section>
         ) : null}
       </div>
     </main>
   );
 }
+

@@ -37,6 +37,7 @@ export type SpectrumAnalysis = {
   axisMax: number;
   ticks: number[];
   markers: SpectrumMarker[];
+  sampledMarkers: SpectrumMarker[];
 };
 
 const DISPLAY_RANGE = 2.6;
@@ -174,10 +175,32 @@ export function createSpectrumAnalysis(experimentState: ExperimentState): Spectr
   const axisMax = 60;
   const ticks = Array.from({ length: 7 }, (_, index) => index * 10);
   const scaleX = (value: number) => 70 + (Math.min(value, axisMax) / axisMax) * 820;
+  const sampledFrequencies = Array.from(
+    new Set(
+      Array.from({ length: 5 }, (_, index) => index - 2)
+        .flatMap((order) => [
+          Math.abs(order * experimentState.samplingRate + experimentState.signalFrequency),
+          Math.abs(order * experimentState.samplingRate - experimentState.signalFrequency),
+        ])
+        .map((value) => Number(value.toFixed(2)))
+        .filter(
+          (value) =>
+            value > 0.01 &&
+            value <= axisMax &&
+            Math.abs(value - experimentState.signalFrequency) > 0.05,
+        ),
+    ),
+  ).slice(0, 7);
 
   return {
     axisMax,
     ticks,
+    sampledMarkers: sampledFrequencies.map((frequency, index) => ({
+      x: scaleX(frequency),
+      y: 176 - (index % 3) * 18,
+      label: `采样谱 ${frequency.toFixed(1)}Hz`,
+      color: "#22c55e",
+    })),
     markers: [
       {
         x: scaleX(experimentState.signalFrequency),

@@ -12,7 +12,7 @@ const chapterTitles: Record<string, string> = {
   sampling: "采样、混叠与重建",
   dft: "DFT 与频谱分析",
   filter: "数字滤波",
-  system: "信号与系统",
+  system: "离散系统响应",
 };
 
 function createClient() {

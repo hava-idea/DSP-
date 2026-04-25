@@ -24,11 +24,11 @@ const chapterCards: ChapterCard[] = [
     id: "sampling",
     title: "采样、混叠与重建",
     status: "已上线",
-    description: "用一个高反馈实验页面，让学生同时看到原始信号、采样点和重建结果。",
+    description: "拖动参数，观察采样点如何改变波形、频谱与重建结果。",
   },
   {
     id: "system",
-    title: "信号与系统",
+    title: "离散系统响应",
     status: "已上线",
     description: "输入输出、冲激响应与系统特性联动观察。",
   },
@@ -134,7 +134,7 @@ const chapterAssistantOpeners: Record<ChapterId, string> = {
   filter:
     "欢迎来到《数字滤波》互动章节。你可以切换低通或高通、调整截止频率与干扰强度，我会结合当前输入输出变化来解读。",
   system:
-    "欢迎来到《信号与系统》互动章节。你可以切换输入信号和系统类型，观察输出响应与系统特性的变化。",
+    "欢迎来到《离散系统响应》互动章节。你可以切换输入信号和系统类型，观察输出响应与系统特性的变化。",
 };
 const chapterInputPlaceholders: Record<ChapterId, string> = {
   sampling: "比如：为什么我把采样率设为 20 Hz 后，看到的波形像 2 Hz 的低频信号？",
@@ -408,7 +408,7 @@ export function CourseDemo() {
     if (chapterId === "system") {
       return {
         chapterId,
-        title: "信号与系统",
+        title: "离散系统响应",
         experimentState: systemState,
         summary: {
           inputType:
@@ -436,7 +436,7 @@ export function CourseDemo() {
 
     return {
       chapterId,
-      title: "信号与系统",
+      title: "离散系统响应",
       summary: "该章节实验仍在扩展中。",
     };
   }
@@ -1300,7 +1300,7 @@ function SystemExperimentPanel({
     <Panel className="overflow-hidden">
       <div className="flex flex-col gap-4 border-b border-slate-200/70 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <h2 className="text-3xl font-semibold tracking-tight text-slate-950 lg:text-4xl">
-          信号与系统
+          离散系统响应
         </h2>
         <div className="flex flex-wrap gap-3">
           <StatusPill label="输入" value={inputLabel} tone="accent" />
@@ -1448,7 +1448,7 @@ function ComingSoonPanel() {
   return (
     <Panel>
       <div className="rounded-[30px] border border-dashed border-slate-200 bg-white/70 px-6 py-12 text-center">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-950">信号与系统</h2>
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-950">离散系统响应</h2>
         <p className="mt-4 text-sm leading-7 text-slate-500">该章节实验入口仍在扩展中。</p>
       </div>
     </Panel>
@@ -1897,7 +1897,7 @@ function SpectrumPanel({
         <div>
           <h3 className="text-lg font-semibold text-slate-950">频谱观察</h3>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            原始频率、Nyquist 边界、混叠频率和采样率会同时标出，方便学生建立对应关系。
+            绿色谱线表示采样后产生的频谱镜像；当镜像落入 Nyquist 区间时，学生会看到混叠后的低频结果。
           </p>
         </div>
         <span className="soft-pill rounded-full px-4 py-2 text-sm font-medium text-slate-600">
@@ -1936,12 +1936,31 @@ function SpectrumPanel({
             </text>
           </g>
         ))}
+        {spectrum.sampledMarkers.map((marker) => (
+          <g key={`${marker.label}-${marker.x}`} opacity="0.72">
+            <line
+              x1={marker.x}
+              y1="192"
+              x2={marker.x}
+              y2={marker.y}
+              stroke={marker.color}
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray="8 7"
+            />
+            <circle cx={marker.x} cy={marker.y} r="6" fill={marker.color} />
+            <text x={marker.x} y={marker.y - 12} textAnchor="middle" fill="#166534" fontSize="11">
+              {marker.label}
+            </text>
+          </g>
+        ))}
       </svg>
 
       <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-500">
         <LegendDot color="bg-blue-600" label="原始频率" />
         <LegendDot color="bg-amber-400" label="Nyquist" />
         <LegendDot color="bg-orange-500" label="混叠频率" />
+        <LegendDot color="bg-green-500" label="采样后频谱镜像" />
         <LegendDot color="bg-slate-900" label="采样率" />
       </div>
     </div>
