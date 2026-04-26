@@ -98,6 +98,12 @@ type SystemAnalysis = {
   outputPeak: number;
   responseTrait: string;
 };
+type FrequencySamplingState = {
+  sampleCount: number;
+  sequenceLength: number;
+  toneRatio: number;
+  envelopeRatio: number;
+};
 type ChapterJourney = {
   highlights: string[];
   recommendedAction: string;
@@ -929,55 +935,57 @@ function ExperimentPanel({
           )}
         </div>
 
-        <div className="badge-surface rounded-[30px] border border-white/70 bg-white/72 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <SliderField
-              label="信号频率"
-              value={experimentState.signalFrequency}
-              min={1}
-              max={30}
-              step={0.5}
-              unit="Hz"
-              onChange={(value) => onUpdate({ signalFrequency: value })}
-            />
-            <SliderField
-              label="采样率"
-              value={experimentState.samplingRate}
-              min={4}
-              max={60}
-              step={1}
-              unit="Hz"
-              onChange={(value) => onUpdate({ samplingRate: value })}
-            />
-            <SliderField
-              label="振幅"
-              value={experimentState.amplitude}
-              min={0.4}
-              max={2}
-              step={0.1}
-              unit=""
-              onChange={(value) => onUpdate({ amplitude: value })}
-            />
-            <SliderField
-              label="相位"
-              value={experimentState.phase}
-              min={0}
-              max={3.14}
-              step={0.1}
-              unit="rad"
-              onChange={(value) => onUpdate({ phase: value })}
-            />
-            <SliderField
-              label="噪声强度"
-              value={experimentState.noiseLevel}
-              min={0}
-              max={0.4}
-              step={0.02}
-              unit=""
-              onChange={(value) => onUpdate({ noiseLevel: value })}
-            />
+        {activeDomain !== "sampling-frequency" ? (
+          <div className="badge-surface rounded-[30px] border border-white/70 bg-white/72 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              <SliderField
+                label="信号频率"
+                value={experimentState.signalFrequency}
+                min={1}
+                max={30}
+                step={0.5}
+                unit="Hz"
+                onChange={(value) => onUpdate({ signalFrequency: value })}
+              />
+              <SliderField
+                label="采样率"
+                value={experimentState.samplingRate}
+                min={4}
+                max={60}
+                step={1}
+                unit="Hz"
+                onChange={(value) => onUpdate({ samplingRate: value })}
+              />
+              <SliderField
+                label="振幅"
+                value={experimentState.amplitude}
+                min={0.4}
+                max={2}
+                step={0.1}
+                unit=""
+                onChange={(value) => onUpdate({ amplitude: value })}
+              />
+              <SliderField
+                label="相位"
+                value={experimentState.phase}
+                min={0}
+                max={3.14}
+                step={0.1}
+                unit="rad"
+                onChange={(value) => onUpdate({ phase: value })}
+              />
+              <SliderField
+                label="噪声强度"
+                value={experimentState.noiseLevel}
+                min={0}
+                max={0.4}
+                step={0.02}
+                unit=""
+                onChange={(value) => onUpdate({ noiseLevel: value })}
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </Panel>
   );
@@ -2276,130 +2284,268 @@ function SystemResponsePanel({
 }
 
 function FrequencySamplingPanel() {
-  const [frequencySampleCount, setFrequencySampleCount] = useState(16);
+  const [frequencySamplingState, setFrequencySamplingState] = useState<FrequencySamplingState>({
+    sampleCount: 24,
+    sequenceLength: 40,
+    toneRatio: 0.28,
+    envelopeRatio: 0.62,
+  });
   const experiment = useMemo(
-    () => buildFrequencySamplingExperiment(frequencySampleCount),
-    [frequencySampleCount],
+    () => buildFrequencySamplingExperiment(frequencySamplingState),
+    [frequencySamplingState],
   );
-  const aliasing = frequencySampleCount < experiment.originalLength;
+
+  function updateFrequencySamplingState(patch: Partial<FrequencySamplingState>) {
+    setFrequencySamplingState((current) => {
+      const next = { ...current, ...patch };
+
+      return {
+        sampleCount: Math.min(64, Math.max(8, Math.round(next.sampleCount / 4) * 4)),
+        sequenceLength: Math.min(64, Math.max(12, Math.round(next.sequenceLength / 4) * 4)),
+        toneRatio: Math.min(0.46, Math.max(0.12, Number(next.toneRatio.toFixed(2)))),
+        envelopeRatio: Math.min(0.9, Math.max(0.25, Number(next.envelopeRatio.toFixed(2)))),
+      };
+    });
+  }
 
   return (
-    <div className="badge-surface rounded-[30px] bg-[linear-gradient(180deg,#eefaf4_0%,#f8fff9_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="badge-surface rounded-[30px] bg-[linear-gradient(180deg,#e8f8f2_0%,#f8fff9_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-slate-950">频域采样实验</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            频域等间隔取样后，IDFT 会得到周期延拓的时域序列；取样点数不足时会发生时域混叠。
-          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {[16, 32].map((count) => {
-            const active = frequencySampleCount === count;
-
-            return (
-              <button
-                key={count}
-                type="button"
-                onClick={() => setFrequencySampleCount(count)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  active ? "bg-slate-950 text-white" : "soft-pill text-slate-600 hover:bg-white"
-                }`}
-              >
-                N = {count}
-              </button>
-            );
-          })}
-        </div>
+        <span
+          className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            experiment.aliasing ? "bg-orange-100 text-orange-700" : "bg-emerald-100 text-emerald-700"
+          }`}
+        >
+          {experiment.aliasing ? "时域周期叠加" : "可近似恢复"}
+        </span>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-        <div className="rounded-[26px] bg-[#f3fff7] p-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-950">频域取样</p>
-            <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-emerald-700">
-              X(e^jω) → X[k]
-            </span>
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-[26px] bg-[#ecfff5] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-slate-950">DTFT 等间隔取样</p>
+              <span className="rounded-full bg-white/82 px-3 py-1 text-xs font-semibold text-emerald-700">
+                Δω = {experiment.sampleSpacingLabel}
+              </span>
+            </div>
+            <svg viewBox="0 0 760 280" className="mt-3 h-[260px] w-full rounded-[22px] bg-white/82">
+              <rect x="0" y="0" width="760" height="280" rx="22" fill="#fbfffc" />
+              <line x1="52" y1="224" x2="708" y2="224" stroke="#b8d8c0" strokeWidth="2" />
+              {experiment.frequencyTicks.map((tick) => (
+                <g key={tick.label}>
+                  <line x1={tick.x} y1="42" x2={tick.x} y2="224" stroke="#d8eadf" strokeWidth="1" />
+                  <text x={tick.x} y="250" textAnchor="middle" fill="#4b6b56" fontSize="12">
+                    {tick.label}
+                  </text>
+                </g>
+              ))}
+              <path d={experiment.continuousSpectrumPath} fill="none" stroke="#2563eb" strokeWidth="4" />
+              {experiment.spectrumSamples.map((sample) => (
+                <g key={sample.index}>
+                  <line
+                    x1={sample.x}
+                    y1="224"
+                    x2={sample.x}
+                    y2={sample.y}
+                    stroke="#16a34a"
+                    strokeWidth="3.8"
+                    strokeLinecap="round"
+                  />
+                  <circle cx={sample.x} cy={sample.y} r="4.8" fill="#22c55e" />
+                </g>
+              ))}
+            </svg>
           </div>
-          <svg viewBox="0 0 760 280" className="mt-3 h-[280px] w-full rounded-[22px] bg-white/76">
-            <rect x="0" y="0" width="760" height="280" rx="22" fill="#fbfffc" />
-            <line x1="52" y1="224" x2="708" y2="224" stroke="#b8d8c0" strokeWidth="2" />
-            {experiment.frequencyTicks.map((tick) => (
-              <g key={tick.label}>
-                <line x1={tick.x} y1="42" x2={tick.x} y2="224" stroke="#d8eadf" strokeWidth="1" />
-                <text x={tick.x} y="250" textAnchor="middle" fill="#4b6b56" fontSize="12">
-                  {tick.label}
-                </text>
-              </g>
-            ))}
-            <path d={experiment.continuousSpectrumPath} fill="none" stroke="#2563eb" strokeWidth="4" />
-            {experiment.spectrumSamples.map((sample) => (
-              <g key={sample.index}>
-                <line
-                  x1={sample.x}
-                  y1="224"
-                  x2={sample.x}
-                  y2={sample.y}
-                  stroke="#16a34a"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                />
-                <circle cx={sample.x} cy={sample.y} r="5.5" fill="#22c55e" />
-              </g>
-            ))}
-          </svg>
+
+          <div className="rounded-[26px] bg-[#fff8ed] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-slate-950">IDFT 时域结果</p>
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  experiment.aliasing ? "bg-orange-100 text-orange-700" : "bg-emerald-100 text-emerald-700"
+                }`}
+              >
+                {experiment.aliasing ? `叠加 ${experiment.foldCount} 组` : "无明显折叠"}
+              </span>
+            </div>
+            <svg viewBox="0 0 760 280" className="mt-3 h-[260px] w-full rounded-[22px] bg-[#fffdf8]">
+              <rect x="0" y="0" width="760" height="280" rx="22" fill="#fffdf8" />
+              <line x1="52" y1="224" x2="708" y2="224" stroke="#e7d6b7" strokeWidth="2" />
+              {experiment.sequenceTicks.map((tick) => (
+                <g key={tick.label}>
+                  <line
+                    x1={tick.x}
+                    y1="42"
+                    x2={tick.x}
+                    y2="224"
+                    stroke={tick.tone === "risk" ? "#fed7aa" : "#e8ddc7"}
+                    strokeDasharray={tick.tone === "risk" ? "8 8" : "0"}
+                    strokeWidth="1.4"
+                  />
+                  <text x={tick.x} y="250" textAnchor="middle" fill="#8a6b47" fontSize="12">
+                    {tick.label}
+                  </text>
+                </g>
+              ))}
+              <path
+                d={experiment.originalSequencePath}
+                fill="none"
+                stroke="#94a3b8"
+                strokeWidth="2.2"
+                strokeDasharray="7 7"
+                opacity="0.72"
+              />
+              <path
+                d={experiment.reconstructedSequencePath}
+                fill="none"
+                stroke={experiment.aliasing ? "#f97316" : "#0f766e"}
+                strokeWidth="3.6"
+              />
+              {experiment.reconstructedSequence.map((point) => (
+                <g key={`reconstructed-${point.index}`}>
+                  <line
+                    x1={point.x}
+                    y1="224"
+                    x2={point.x}
+                    y2={point.y}
+                    stroke={experiment.aliasing ? "#f97316" : "#0f766e"}
+                    strokeWidth="2.8"
+                    strokeLinecap="round"
+                    opacity="0.78"
+                  />
+                  <circle cx={point.x} cy={point.y} r="3.8" fill={experiment.aliasing ? "#fb923c" : "#14b8a6"} />
+                </g>
+              ))}
+            </svg>
+          </div>
         </div>
 
-        <div className="rounded-[26px] bg-white/78 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-950">IDFT 后的时域结果</p>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                aliasing ? "bg-orange-100 text-orange-700" : "bg-emerald-100 text-emerald-700"
-              }`}
-            >
-              {aliasing ? "发生时域混叠" : "基本恢复原序列"}
-            </span>
+        <div className="rounded-[26px] bg-white/82 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="rounded-[20px] bg-slate-950 px-3 py-3 text-white">
+              <p className="text-xs text-slate-300">取样点数</p>
+              <p className="mt-1 text-xl font-semibold">N = {experiment.sampleCount}</p>
+            </div>
+            <div className="rounded-[20px] bg-emerald-50 px-3 py-3 text-emerald-900">
+              <p className="text-xs text-emerald-700">原序列长度</p>
+              <p className="mt-1 text-xl font-semibold">L = {experiment.sequenceLength}</p>
+            </div>
           </div>
-          <svg viewBox="0 0 760 280" className="mt-3 h-[280px] w-full rounded-[22px] bg-[#fffdf8]">
-            <rect x="0" y="0" width="760" height="280" rx="22" fill="#fffdf8" />
-            <line x1="52" y1="224" x2="708" y2="224" stroke="#e7d6b7" strokeWidth="2" />
-            {experiment.originalSequence.map((point) => (
-              <line
-                key={`original-${point.index}`}
-                x1={point.x}
-                y1="224"
-                x2={point.x}
-                y2={point.y}
-                stroke="#94a3b8"
-                strokeWidth="2"
-                strokeLinecap="round"
-                opacity="0.45"
-              />
-            ))}
-            {experiment.reconstructedSequence.map((point) => (
-              <g key={`reconstructed-${point.index}`}>
-                <line
-                  x1={point.x}
-                  y1="224"
-                  x2={point.x}
-                  y2={point.y}
-                  stroke={aliasing ? "#f97316" : "#0f766e"}
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                />
-                <circle cx={point.x} cy={point.y} r="4.8" fill={aliasing ? "#fb923c" : "#14b8a6"} />
-              </g>
-            ))}
-          </svg>
+
+          <div className="mt-3 space-y-3">
+            <CompactSliderField
+              label="取样点数 N"
+              value={frequencySamplingState.sampleCount}
+              min={8}
+              max={64}
+              step={4}
+              displayValue={`N = ${frequencySamplingState.sampleCount}`}
+              onChange={(value) => updateFrequencySamplingState({ sampleCount: value })}
+            />
+            <CompactSliderField
+              label="原序列长度 L"
+              value={frequencySamplingState.sequenceLength}
+              min={12}
+              max={64}
+              step={4}
+              displayValue={`L = ${frequencySamplingState.sequenceLength}`}
+              onChange={(value) => updateFrequencySamplingState({ sequenceLength: value })}
+            />
+            <CompactSliderField
+              label="谱峰位置"
+              value={frequencySamplingState.toneRatio}
+              min={0.12}
+              max={0.46}
+              step={0.01}
+              displayValue={`${frequencySamplingState.toneRatio.toFixed(2)}π`}
+              onChange={(value) => updateFrequencySamplingState({ toneRatio: value })}
+            />
+            <CompactSliderField
+              label="时域包络"
+              value={frequencySamplingState.envelopeRatio}
+              min={0.25}
+              max={0.9}
+              step={0.01}
+              displayValue={`${(frequencySamplingState.envelopeRatio * 100).toFixed(0)}%`}
+              onChange={(value) => updateFrequencySamplingState({ envelopeRatio: value })}
+            />
+          </div>
+
+          <div className="mt-3 rounded-[22px] bg-emerald-50/80 p-3 text-sm leading-6 text-emerald-950">
+            {experiment.aliasing
+              ? `N 小于 L，IDFT 会把相隔 ${experiment.sampleCount} 点的时域样本叠加。`
+              : "N 不小于 L，IDFT 结果与原序列基本一致。"}
+          </div>
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-500">
-        <LegendDot color="bg-blue-600" label="连续频谱" />
-        <LegendDot color="bg-green-500" label="频域采样点" />
-        <LegendDot color={aliasing ? "bg-orange-500" : "bg-teal-500"} label={aliasing ? "时域混叠" : "时域恢复"} />
+        <LegendDot color="bg-blue-600" label="连续 DTFT" />
+        <LegendDot color="bg-green-500" label="频域取样点" />
+        <LegendDot color="bg-slate-400" label="原序列" />
+        <LegendDot color={experiment.aliasing ? "bg-orange-500" : "bg-teal-500"} label="IDFT 结果" />
       </div>
     </div>
+  );
+}
+
+function CompactSliderField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  displayValue,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  displayValue: string;
+  onChange: (value: number) => void;
+}) {
+  const decimals = step >= 1 ? 0 : 2;
+
+  function clampValue(nextValue: number) {
+    if (!Number.isFinite(nextValue)) {
+      return value;
+    }
+
+    return Math.min(max, Math.max(min, nextValue));
+  }
+
+  return (
+    <label className="block rounded-[22px] bg-slate-50/90 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-slate-800">{label}</span>
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value.toFixed(decimals)}
+          onChange={(event) => onChange(clampValue(event.currentTarget.valueAsNumber))}
+          className="w-20 rounded-full border border-emerald-100 bg-white px-2.5 py-1.5 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+        />
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        onInput={(event) => onChange(Number((event.target as HTMLInputElement).value))}
+        className="h-2 w-full cursor-pointer accent-emerald-600"
+      />
+      <div className="mt-2 text-right text-xs font-semibold text-emerald-700">{displayValue}</div>
+    </label>
   );
 }
 
@@ -2749,67 +2895,143 @@ function buildSystemAnalysis(systemState: SystemState): SystemAnalysis {
   };
 }
 
-function buildFrequencySamplingExperiment(frequencySampleCount: number) {
-  const originalLength = 32;
-  const visibleCount = 32;
-  const sequence = Array.from({ length: originalLength }, (_, index) => {
-    const window = Math.exp(-((index - 15) ** 2) / 82);
-    return window * Math.cos((2 * Math.PI * 4 * index) / originalLength);
+function buildFrequencySamplingExperiment({
+  sampleCount,
+  sequenceLength,
+  toneRatio,
+  envelopeRatio,
+}: FrequencySamplingState) {
+  const normalizedSampleCount = Math.round(sampleCount);
+  const normalizedSequenceLength = Math.round(sequenceLength);
+  const aliasing = normalizedSampleCount < normalizedSequenceLength;
+  const omega0 = toneRatio * Math.PI;
+  const center = (normalizedSequenceLength - 1) / 2;
+  const sigma = normalizedSequenceLength * (0.1 + envelopeRatio * 0.26);
+  const rawSequence = Array.from({ length: normalizedSequenceLength }, (_, index) => {
+    const centeredIndex = index - center;
+    const envelope = Math.exp(-(centeredIndex ** 2) / (2 * sigma ** 2));
+    const edgeTaper = 0.54 - 0.46 * Math.cos((2 * Math.PI * index) / Math.max(normalizedSequenceLength - 1, 1));
+
+    return envelope * edgeTaper * Math.cos(omega0 * centeredIndex);
   });
-  const continuousSpectrum = Array.from({ length: 180 }, (_, index) => {
-    const omega = -Math.PI + (index / 179) * 2 * Math.PI;
-    const magnitude =
-      Math.exp(-((omega - 0.78) ** 2) / 0.12) +
-      Math.exp(-((omega + 0.78) ** 2) / 0.12) * 0.92;
+  const sequenceScale = Math.max(...rawSequence.map((value) => Math.abs(value)), 1);
+  const sequence = rawSequence.map((value) => value / sequenceScale);
+
+  function frequencyX(omega: number) {
+    return 52 + ((omega + Math.PI) / (2 * Math.PI)) * 656;
+  }
+
+  function evaluateDtftMagnitude(omega: number) {
+    let real = 0;
+    let imaginary = 0;
+
+    sequence.forEach((value, index) => {
+      const angle = -omega * index;
+      real += value * Math.cos(angle);
+      imaginary += value * Math.sin(angle);
+    });
+
+    return Math.sqrt(real ** 2 + imaginary ** 2);
+  }
+
+  const spectrumMagnitudes = Array.from({ length: 240 }, (_, index) => {
+    const omega = -Math.PI + (index / 239) * 2 * Math.PI;
 
     return {
-      x: 52 + (index / 179) * 656,
-      y: 224 - magnitude * 84,
+      omega,
+      magnitude: evaluateDtftMagnitude(omega),
     };
   });
-  const spectrumSamples = Array.from({ length: frequencySampleCount }, (_, index) => {
-    const omega = -Math.PI + (index / (frequencySampleCount - 1)) * 2 * Math.PI;
-    const magnitude =
-      Math.exp(-((omega - 0.78) ** 2) / 0.12) +
-      Math.exp(-((omega + 0.78) ** 2) / 0.12) * 0.92;
+  const maxSpectrumMagnitude = Math.max(...spectrumMagnitudes.map((point) => point.magnitude), 1);
+  const mapSpectrumY = (magnitude: number) => 224 - (magnitude / maxSpectrumMagnitude) * 154;
+  const continuousSpectrum = spectrumMagnitudes.map((point) => ({
+    x: frequencyX(point.omega),
+    y: mapSpectrumY(point.magnitude),
+  }));
+  const spectrumSamples = Array.from({ length: normalizedSampleCount }, (_, index) => {
+    const omega = -Math.PI + (index / normalizedSampleCount) * 2 * Math.PI;
+    const magnitude = evaluateDtftMagnitude(omega);
 
     return {
       index,
-      x: 52 + (index / (frequencySampleCount - 1)) * 656,
-      y: 224 - magnitude * 84,
+      x: frequencyX(omega),
+      y: mapSpectrumY(magnitude),
     };
   });
-  const reconstructedValues = Array.from({ length: visibleCount }, (_, index) => {
-    if (frequencySampleCount >= originalLength) {
-      return sequence[index];
+
+  const periodValues = Array.from({ length: normalizedSampleCount }, (_, periodIndex) => {
+    let total = 0;
+
+    for (let sourceIndex = periodIndex; sourceIndex < sequence.length; sourceIndex += normalizedSampleCount) {
+      total += sequence[sourceIndex];
     }
 
-    const folded = sequence[index] + (sequence[index + frequencySampleCount] ?? 0);
-    return folded * 0.72;
+    return total;
   });
-  const maxMagnitude = Math.max(
-    ...sequence.map((value) => Math.abs(value)),
+  const visibleCount = Math.min(
+    72,
+    Math.max(32, normalizedSequenceLength, normalizedSampleCount * (aliasing ? 1 : 2)),
+  );
+  const originalValues = Array.from({ length: visibleCount }, (_, index) =>
+    index < sequence.length ? sequence[index] : 0,
+  );
+  const reconstructedValues = Array.from(
+    { length: visibleCount },
+    (_, index) => periodValues[index % normalizedSampleCount] ?? 0,
+  );
+  const maxSequenceMagnitude = Math.max(
+    ...originalValues.map((value) => Math.abs(value)),
     ...reconstructedValues.map((value) => Math.abs(value)),
     1,
   );
+
+  function sequenceX(index: number) {
+    return 52 + (index / Math.max(visibleCount - 1, 1)) * 656;
+  }
+
   const mapSequence = (values: number[]) =>
     values.map((value, index) => ({
       index,
-      x: 52 + (index / (visibleCount - 1)) * 656,
-      y: 224 - (value / maxMagnitude) * 128,
+      x: sequenceX(index),
+      y: 224 - (value / maxSequenceMagnitude) * 138,
     }));
+  const originalSequence = mapSequence(originalValues);
+  const reconstructedSequence = mapSequence(reconstructedValues);
+  const sequenceTickCandidates = [
+    { index: 0, label: "0", tone: "base" as const },
+    normalizedSampleCount < visibleCount
+      ? {
+          index: normalizedSampleCount,
+          label: normalizedSampleCount === normalizedSequenceLength ? "N=L" : "N",
+          tone: aliasing ? ("risk" as const) : ("base" as const),
+        }
+      : null,
+    normalizedSequenceLength < visibleCount && normalizedSequenceLength !== normalizedSampleCount
+      ? { index: normalizedSequenceLength, label: "L", tone: "base" as const }
+      : null,
+  ].filter((tick): tick is { index: number; label: string; tone: "base" | "risk" } => tick !== null);
 
   return {
-    originalLength,
+    sampleCount: normalizedSampleCount,
+    sequenceLength: normalizedSequenceLength,
+    aliasing,
+    foldCount: Math.max(1, Math.ceil(normalizedSequenceLength / normalizedSampleCount)),
+    sampleSpacingLabel: `2π/${normalizedSampleCount}`,
     continuousSpectrumPath: formatChartPoints(continuousSpectrum),
     spectrumSamples,
-    originalSequence: mapSequence(sequence.slice(0, visibleCount)),
-    reconstructedSequence: mapSequence(reconstructedValues),
+    originalSequence,
+    originalSequencePath: formatChartPoints(originalSequence),
+    reconstructedSequence,
+    reconstructedSequencePath: formatChartPoints(reconstructedSequence),
     frequencyTicks: [
       { x: 52, label: "-π" },
       { x: 380, label: "0" },
       { x: 708, label: "π" },
     ],
+    sequenceTicks: sequenceTickCandidates.map((tick) => ({
+      ...tick,
+      x: sequenceX(tick.index),
+    })),
   };
 }
 
