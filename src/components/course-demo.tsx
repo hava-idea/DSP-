@@ -925,7 +925,7 @@ function ExperimentPanel({
           ) : activeDomain === "frequency" ? (
             <SpectrumPanel spectrum={spectrum} samplingRate={experimentState.samplingRate} />
           ) : (
-            <FrequencySamplingPanel spectrum={spectrum} samplingRate={experimentState.samplingRate} />
+            <FrequencySamplingPanel />
           )}
         </div>
 
@@ -2275,83 +2275,129 @@ function SystemResponsePanel({
   );
 }
 
-function FrequencySamplingPanel({
-  spectrum,
-  samplingRate,
-}: {
-  spectrum: SpectrumAnalysis;
-  samplingRate: number;
-}) {
+function FrequencySamplingPanel() {
+  const [frequencySampleCount, setFrequencySampleCount] = useState(16);
+  const experiment = useMemo(
+    () => buildFrequencySamplingExperiment(frequencySampleCount),
+    [frequencySampleCount],
+  );
+  const aliasing = frequencySampleCount < experiment.originalLength;
+
   return (
     <div className="badge-surface rounded-[30px] bg-[linear-gradient(180deg,#eefaf4_0%,#f8fff9_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-slate-950">频域采样实验</h3>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            时域采样会让频谱按采样率周期复制；拖动采样率时，绿色镜像谱会一起移动。
+            频域等间隔取样后，IDFT 会得到周期延拓的时域序列；取样点数不足时会发生时域混叠。
           </p>
         </div>
-        <span className="soft-pill rounded-full px-4 py-2 text-sm font-medium text-slate-600">
-          复制周期 fs = {samplingRate.toFixed(1)} Hz
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {[16, 32].map((count) => {
+            const active = frequencySampleCount === count;
+
+            return (
+              <button
+                key={count}
+                type="button"
+                onClick={() => setFrequencySampleCount(count)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  active ? "bg-slate-950 text-white" : "soft-pill text-slate-600 hover:bg-white"
+                }`}
+              >
+                N = {count}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <svg viewBox="0 0 960 300" className="mt-5 h-[340px] w-full rounded-[24px] bg-[#f3fff7]">
-        <rect x="0" y="0" width="960" height="300" rx="24" fill="#f3fff7" />
-        <line x1="70" y1="232" x2="890" y2="232" stroke="#bbd7c4" strokeWidth="2" />
-        {spectrum.ticks.map((tick) => {
-          const x = 70 + (tick / spectrum.axisMax) * 820;
-          return (
-            <g key={tick}>
-              <line x1={x} y1="44" x2={x} y2="232" stroke="#d8eadf" strokeWidth="1" />
-              <text x={x} y="258" textAnchor="middle" fill="#4b6b56" fontSize="12">
-                {tick}
-              </text>
-            </g>
-          );
-        })}
-        {spectrum.sampledMarkers.map((marker) => (
-          <g key={`sampled-${marker.label}-${marker.x}`}>
-            <line
-              x1={marker.x}
-              y1="232"
-              x2={marker.x}
-              y2={marker.y + 32}
-              stroke="#16a34a"
-              strokeWidth="7"
-              strokeLinecap="round"
-            />
-            <circle cx={marker.x} cy={marker.y + 32} r="8" fill="#22c55e" />
-            <text x={marker.x} y={marker.y + 15} textAnchor="middle" fill="#166534" fontSize="12">
-              {marker.label.replace("采样谱 ", "")}
-            </text>
-          </g>
-        ))}
-        {spectrum.markers
-          .filter((marker) => marker.label.startsWith("原始") || marker.label.startsWith("混叠"))
-          .map((marker) => (
-            <g key={`base-${marker.label}`}>
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+        <div className="rounded-[26px] bg-[#f3fff7] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-950">频域取样</p>
+            <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-emerald-700">
+              X(e^jω) → X[k]
+            </span>
+          </div>
+          <svg viewBox="0 0 760 280" className="mt-3 h-[280px] w-full rounded-[22px] bg-white/76">
+            <rect x="0" y="0" width="760" height="280" rx="22" fill="#fbfffc" />
+            <line x1="52" y1="224" x2="708" y2="224" stroke="#b8d8c0" strokeWidth="2" />
+            {experiment.frequencyTicks.map((tick) => (
+              <g key={tick.label}>
+                <line x1={tick.x} y1="42" x2={tick.x} y2="224" stroke="#d8eadf" strokeWidth="1" />
+                <text x={tick.x} y="250" textAnchor="middle" fill="#4b6b56" fontSize="12">
+                  {tick.label}
+                </text>
+              </g>
+            ))}
+            <path d={experiment.continuousSpectrumPath} fill="none" stroke="#2563eb" strokeWidth="4" />
+            {experiment.spectrumSamples.map((sample) => (
+              <g key={sample.index}>
+                <line
+                  x1={sample.x}
+                  y1="224"
+                  x2={sample.x}
+                  y2={sample.y}
+                  stroke="#16a34a"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                />
+                <circle cx={sample.x} cy={sample.y} r="5.5" fill="#22c55e" />
+              </g>
+            ))}
+          </svg>
+        </div>
+
+        <div className="rounded-[26px] bg-white/78 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-950">IDFT 后的时域结果</p>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                aliasing ? "bg-orange-100 text-orange-700" : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {aliasing ? "发生时域混叠" : "基本恢复原序列"}
+            </span>
+          </div>
+          <svg viewBox="0 0 760 280" className="mt-3 h-[280px] w-full rounded-[22px] bg-[#fffdf8]">
+            <rect x="0" y="0" width="760" height="280" rx="22" fill="#fffdf8" />
+            <line x1="52" y1="224" x2="708" y2="224" stroke="#e7d6b7" strokeWidth="2" />
+            {experiment.originalSequence.map((point) => (
               <line
-                x1={marker.x}
-                y1="232"
-                x2={marker.x}
-                y2={marker.y + 34}
-                stroke={marker.color}
-                strokeWidth="9"
+                key={`original-${point.index}`}
+                x1={point.x}
+                y1="224"
+                x2={point.x}
+                y2={point.y}
+                stroke="#94a3b8"
+                strokeWidth="2"
                 strokeLinecap="round"
+                opacity="0.45"
               />
-              <circle cx={marker.x} cy={marker.y + 34} r="8" fill={marker.color} />
-              <text x={marker.x} y={marker.y + 17} textAnchor="middle" fill="#0f172a" fontSize="12">
-                {marker.label}
-              </text>
-            </g>
-          ))}
-      </svg>
+            ))}
+            {experiment.reconstructedSequence.map((point) => (
+              <g key={`reconstructed-${point.index}`}>
+                <line
+                  x1={point.x}
+                  y1="224"
+                  x2={point.x}
+                  y2={point.y}
+                  stroke={aliasing ? "#f97316" : "#0f766e"}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                />
+                <circle cx={point.x} cy={point.y} r="4.8" fill={aliasing ? "#fb923c" : "#14b8a6"} />
+              </g>
+            ))}
+          </svg>
+        </div>
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-500">
-        <LegendDot color="bg-blue-600" label="原始频率" />
-        <LegendDot color="bg-green-500" label="采样复制频谱" />
-        <LegendDot color="bg-orange-500" label="混叠落点" />
+        <LegendDot color="bg-blue-600" label="连续频谱" />
+        <LegendDot color="bg-green-500" label="频域采样点" />
+        <LegendDot color={aliasing ? "bg-orange-500" : "bg-teal-500"} label={aliasing ? "时域混叠" : "时域恢复"} />
       </div>
     </div>
   );
@@ -2702,3 +2748,68 @@ function buildSystemAnalysis(systemState: SystemState): SystemAnalysis {
           : "主要体现相位延后",
   };
 }
+
+function buildFrequencySamplingExperiment(frequencySampleCount: number) {
+  const originalLength = 32;
+  const visibleCount = 32;
+  const sequence = Array.from({ length: originalLength }, (_, index) => {
+    const window = Math.exp(-((index - 15) ** 2) / 82);
+    return window * Math.cos((2 * Math.PI * 4 * index) / originalLength);
+  });
+  const continuousSpectrum = Array.from({ length: 180 }, (_, index) => {
+    const omega = -Math.PI + (index / 179) * 2 * Math.PI;
+    const magnitude =
+      Math.exp(-((omega - 0.78) ** 2) / 0.12) +
+      Math.exp(-((omega + 0.78) ** 2) / 0.12) * 0.92;
+
+    return {
+      x: 52 + (index / 179) * 656,
+      y: 224 - magnitude * 84,
+    };
+  });
+  const spectrumSamples = Array.from({ length: frequencySampleCount }, (_, index) => {
+    const omega = -Math.PI + (index / (frequencySampleCount - 1)) * 2 * Math.PI;
+    const magnitude =
+      Math.exp(-((omega - 0.78) ** 2) / 0.12) +
+      Math.exp(-((omega + 0.78) ** 2) / 0.12) * 0.92;
+
+    return {
+      index,
+      x: 52 + (index / (frequencySampleCount - 1)) * 656,
+      y: 224 - magnitude * 84,
+    };
+  });
+  const reconstructedValues = Array.from({ length: visibleCount }, (_, index) => {
+    if (frequencySampleCount >= originalLength) {
+      return sequence[index];
+    }
+
+    const folded = sequence[index] + (sequence[index + frequencySampleCount] ?? 0);
+    return folded * 0.72;
+  });
+  const maxMagnitude = Math.max(
+    ...sequence.map((value) => Math.abs(value)),
+    ...reconstructedValues.map((value) => Math.abs(value)),
+    1,
+  );
+  const mapSequence = (values: number[]) =>
+    values.map((value, index) => ({
+      index,
+      x: 52 + (index / (visibleCount - 1)) * 656,
+      y: 224 - (value / maxMagnitude) * 128,
+    }));
+
+  return {
+    originalLength,
+    continuousSpectrumPath: formatChartPoints(continuousSpectrum),
+    spectrumSamples,
+    originalSequence: mapSequence(sequence.slice(0, visibleCount)),
+    reconstructedSequence: mapSequence(reconstructedValues),
+    frequencyTicks: [
+      { x: 52, label: "-π" },
+      { x: 380, label: "0" },
+      { x: 708, label: "π" },
+    ],
+  };
+}
+
