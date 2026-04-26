@@ -57,9 +57,15 @@ const domainTabs = [
   { id: "time", label: "时域" },
   { id: "frequency", label: "频域" },
 ] as const;
+const samplingDomainTabs = [
+  { id: "time", label: "时域" },
+  { id: "frequency", label: "频域" },
+  { id: "sampling-frequency", label: "频域采样" },
+] as const;
 
 type MobileTab = (typeof mobileTabs)[number]["id"];
 type DomainView = (typeof domainTabs)[number]["id"];
+type SamplingDomainView = (typeof samplingDomainTabs)[number]["id"];
 type ChapterId = "sampling" | "system" | "dft" | "filter";
 type DftState = {
   windowMode: "rect" | "hann";
@@ -852,7 +858,7 @@ function ExperimentPanel({
   displayedSamples: number;
   onUpdate: (patch: Partial<ExperimentState>) => void;
 }) {
-  const [activeDomain, setActiveDomain] = useState<DomainView>("time");
+  const [activeDomain, setActiveDomain] = useState<SamplingDomainView>("time");
 
   return (
     <Panel className="overflow-hidden">
@@ -879,7 +885,7 @@ function ExperimentPanel({
         <div className="space-y-4">
           <div className="badge-surface flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-white/70 bg-white/72 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
             <div className="inline-flex rounded-full bg-slate-100 p-1">
-              {domainTabs.map((tab) => {
+              {samplingDomainTabs.map((tab) => {
                 const active = tab.id === activeDomain;
 
                 return (
@@ -916,8 +922,10 @@ function ExperimentPanel({
               sampledWave={sampledWave}
               windowLabel={visibleWindow}
             />
-          ) : (
+          ) : activeDomain === "frequency" ? (
             <SpectrumPanel spectrum={spectrum} samplingRate={experimentState.samplingRate} />
+          ) : (
+            <FrequencySamplingPanel spectrum={spectrum} samplingRate={experimentState.samplingRate} />
           )}
         </div>
 
@@ -1897,7 +1905,7 @@ function SpectrumPanel({
         <div>
           <h3 className="text-lg font-semibold text-slate-950">频谱观察</h3>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            绿色谱线表示采样后产生的频谱镜像；当镜像落入 Nyquist 区间时，学生会看到混叠后的低频结果。
+            绿色谱线表示采样后产生的频谱镜像；当镜像落入 Nyquist 区间时，会看到混叠后的低频结果。
           </p>
         </div>
         <span className="soft-pill rounded-full px-4 py-2 text-sm font-medium text-slate-600">
@@ -2262,6 +2270,88 @@ function SystemResponsePanel({
 
       <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-500">
         <LegendDot color="bg-amber-600" label="系统幅频响应" />
+      </div>
+    </div>
+  );
+}
+
+function FrequencySamplingPanel({
+  spectrum,
+  samplingRate,
+}: {
+  spectrum: SpectrumAnalysis;
+  samplingRate: number;
+}) {
+  return (
+    <div className="badge-surface rounded-[30px] bg-[linear-gradient(180deg,#eefaf4_0%,#f8fff9_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-950">频域采样实验</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            时域采样会让频谱按采样率周期复制；拖动采样率时，绿色镜像谱会一起移动。
+          </p>
+        </div>
+        <span className="soft-pill rounded-full px-4 py-2 text-sm font-medium text-slate-600">
+          复制周期 fs = {samplingRate.toFixed(1)} Hz
+        </span>
+      </div>
+
+      <svg viewBox="0 0 960 300" className="mt-5 h-[340px] w-full rounded-[24px] bg-[#f3fff7]">
+        <rect x="0" y="0" width="960" height="300" rx="24" fill="#f3fff7" />
+        <line x1="70" y1="232" x2="890" y2="232" stroke="#bbd7c4" strokeWidth="2" />
+        {spectrum.ticks.map((tick) => {
+          const x = 70 + (tick / spectrum.axisMax) * 820;
+          return (
+            <g key={tick}>
+              <line x1={x} y1="44" x2={x} y2="232" stroke="#d8eadf" strokeWidth="1" />
+              <text x={x} y="258" textAnchor="middle" fill="#4b6b56" fontSize="12">
+                {tick}
+              </text>
+            </g>
+          );
+        })}
+        {spectrum.sampledMarkers.map((marker) => (
+          <g key={`sampled-${marker.label}-${marker.x}`}>
+            <line
+              x1={marker.x}
+              y1="232"
+              x2={marker.x}
+              y2={marker.y + 32}
+              stroke="#16a34a"
+              strokeWidth="7"
+              strokeLinecap="round"
+            />
+            <circle cx={marker.x} cy={marker.y + 32} r="8" fill="#22c55e" />
+            <text x={marker.x} y={marker.y + 15} textAnchor="middle" fill="#166534" fontSize="12">
+              {marker.label.replace("采样谱 ", "")}
+            </text>
+          </g>
+        ))}
+        {spectrum.markers
+          .filter((marker) => marker.label.startsWith("原始") || marker.label.startsWith("混叠"))
+          .map((marker) => (
+            <g key={`base-${marker.label}`}>
+              <line
+                x1={marker.x}
+                y1="232"
+                x2={marker.x}
+                y2={marker.y + 34}
+                stroke={marker.color}
+                strokeWidth="9"
+                strokeLinecap="round"
+              />
+              <circle cx={marker.x} cy={marker.y + 34} r="8" fill={marker.color} />
+              <text x={marker.x} y={marker.y + 17} textAnchor="middle" fill="#0f172a" fontSize="12">
+                {marker.label}
+              </text>
+            </g>
+          ))}
+      </svg>
+
+      <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-500">
+        <LegendDot color="bg-blue-600" label="原始频率" />
+        <LegendDot color="bg-green-500" label="采样复制频谱" />
+        <LegendDot color="bg-orange-500" label="混叠落点" />
       </div>
     </div>
   );
