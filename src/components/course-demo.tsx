@@ -2323,109 +2323,9 @@ function FrequencySamplingPanel() {
         </span>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-[26px] bg-[#ecfff5] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-slate-950">DTFT 等间隔取样</p>
-              <span className="rounded-full bg-white/82 px-3 py-1 text-xs font-semibold text-emerald-700">
-                Δω = {experiment.sampleSpacingLabel}
-              </span>
-            </div>
-            <svg viewBox="0 0 760 280" className="mt-3 h-[260px] w-full rounded-[22px] bg-white/82">
-              <rect x="0" y="0" width="760" height="280" rx="22" fill="#fbfffc" />
-              <line x1="52" y1="224" x2="708" y2="224" stroke="#b8d8c0" strokeWidth="2" />
-              {experiment.frequencyTicks.map((tick) => (
-                <g key={tick.label}>
-                  <line x1={tick.x} y1="42" x2={tick.x} y2="224" stroke="#d8eadf" strokeWidth="1" />
-                  <text x={tick.x} y="250" textAnchor="middle" fill="#4b6b56" fontSize="12">
-                    {tick.label}
-                  </text>
-                </g>
-              ))}
-              <path d={experiment.continuousSpectrumPath} fill="none" stroke="#2563eb" strokeWidth="4" />
-              {experiment.spectrumSamples.map((sample) => (
-                <g key={sample.index}>
-                  <line
-                    x1={sample.x}
-                    y1="224"
-                    x2={sample.x}
-                    y2={sample.y}
-                    stroke="#16a34a"
-                    strokeWidth="3.8"
-                    strokeLinecap="round"
-                  />
-                  <circle cx={sample.x} cy={sample.y} r="4.8" fill="#22c55e" />
-                </g>
-              ))}
-            </svg>
-          </div>
-
-          <div className="rounded-[26px] bg-[#fff8ed] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-slate-950">IDFT 时域结果</p>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  experiment.aliasing ? "bg-orange-100 text-orange-700" : "bg-emerald-100 text-emerald-700"
-                }`}
-              >
-                {experiment.aliasing ? `叠加 ${experiment.foldCount} 组` : "无明显折叠"}
-              </span>
-            </div>
-            <svg viewBox="0 0 760 280" className="mt-3 h-[260px] w-full rounded-[22px] bg-[#fffdf8]">
-              <rect x="0" y="0" width="760" height="280" rx="22" fill="#fffdf8" />
-              <line x1="52" y1="224" x2="708" y2="224" stroke="#e7d6b7" strokeWidth="2" />
-              {experiment.sequenceTicks.map((tick) => (
-                <g key={tick.label}>
-                  <line
-                    x1={tick.x}
-                    y1="42"
-                    x2={tick.x}
-                    y2="224"
-                    stroke={tick.tone === "risk" ? "#fed7aa" : "#e8ddc7"}
-                    strokeDasharray={tick.tone === "risk" ? "8 8" : "0"}
-                    strokeWidth="1.4"
-                  />
-                  <text x={tick.x} y="250" textAnchor="middle" fill="#8a6b47" fontSize="12">
-                    {tick.label}
-                  </text>
-                </g>
-              ))}
-              <path
-                d={experiment.originalSequencePath}
-                fill="none"
-                stroke="#94a3b8"
-                strokeWidth="2.2"
-                strokeDasharray="7 7"
-                opacity="0.72"
-              />
-              <path
-                d={experiment.reconstructedSequencePath}
-                fill="none"
-                stroke={experiment.aliasing ? "#f97316" : "#0f766e"}
-                strokeWidth="3.6"
-              />
-              {experiment.reconstructedSequence.map((point) => (
-                <g key={`reconstructed-${point.index}`}>
-                  <line
-                    x1={point.x}
-                    y1="224"
-                    x2={point.x}
-                    y2={point.y}
-                    stroke={experiment.aliasing ? "#f97316" : "#0f766e"}
-                    strokeWidth="2.8"
-                    strokeLinecap="round"
-                    opacity="0.78"
-                  />
-                  <circle cx={point.x} cy={point.y} r="3.8" fill={experiment.aliasing ? "#fb923c" : "#14b8a6"} />
-                </g>
-              ))}
-            </svg>
-          </div>
-        </div>
-
+      <div className="mt-4 space-y-4">
         <div className="rounded-[26px] bg-white/82 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-[20px] bg-slate-950 px-3 py-3 text-white">
               <p className="text-xs text-slate-300">取样点数</p>
               <p className="mt-1 text-xl font-semibold">N = {experiment.sampleCount}</p>
@@ -2434,9 +2334,17 @@ function FrequencySamplingPanel() {
               <p className="text-xs text-emerald-700">原序列长度</p>
               <p className="mt-1 text-xl font-semibold">L = {experiment.sequenceLength}</p>
             </div>
+            <div className="rounded-[20px] bg-blue-50 px-3 py-3 text-blue-900">
+              <p className="text-xs text-blue-700">频域步长</p>
+              <p className="mt-1 text-xl font-semibold">{experiment.sampleSpacingLabel}</p>
+            </div>
+            <div className="rounded-[20px] bg-orange-50 px-3 py-3 text-orange-900">
+              <p className="text-xs text-orange-700">折叠组数</p>
+              <p className="mt-1 text-xl font-semibold">{experiment.foldCount} 组</p>
+            </div>
           </div>
 
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
             <CompactSliderField
               label="取样点数 N"
               value={frequencySamplingState.sampleCount}
@@ -2480,6 +2388,104 @@ function FrequencySamplingPanel() {
               ? `N 小于 L，IDFT 会把相隔 ${experiment.sampleCount} 点的时域样本叠加。`
               : "N 不小于 L，IDFT 结果与原序列基本一致。"}
           </div>
+        </div>
+
+        <div className="rounded-[26px] bg-[#ecfff5] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-950">DTFT 等间隔取样</p>
+            <span className="rounded-full bg-white/82 px-3 py-1 text-xs font-semibold text-emerald-700">
+              Δω = {experiment.sampleSpacingLabel}
+            </span>
+          </div>
+          <svg viewBox="0 0 760 280" className="mt-3 h-[250px] w-full rounded-[22px] bg-white/82">
+            <rect x="0" y="0" width="760" height="280" rx="22" fill="#fbfffc" />
+            <line x1="52" y1="224" x2="708" y2="224" stroke="#b8d8c0" strokeWidth="2" />
+            {experiment.frequencyTicks.map((tick) => (
+              <g key={tick.label}>
+                <line x1={tick.x} y1="42" x2={tick.x} y2="224" stroke="#d8eadf" strokeWidth="1" />
+                <text x={tick.x} y="250" textAnchor="middle" fill="#4b6b56" fontSize="12">
+                  {tick.label}
+                </text>
+              </g>
+            ))}
+            <path d={experiment.continuousSpectrumPath} fill="none" stroke="#2563eb" strokeWidth="4" />
+            {experiment.spectrumSamples.map((sample) => (
+              <g key={sample.index}>
+                <line
+                  x1={sample.x}
+                  y1="224"
+                  x2={sample.x}
+                  y2={sample.y}
+                  stroke="#16a34a"
+                  strokeWidth="3.8"
+                  strokeLinecap="round"
+                />
+                <circle cx={sample.x} cy={sample.y} r="4.8" fill="#22c55e" />
+              </g>
+            ))}
+          </svg>
+        </div>
+
+        <div className="rounded-[26px] bg-[#fff8ed] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-950">IDFT 时域结果</p>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                experiment.aliasing ? "bg-orange-100 text-orange-700" : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {experiment.aliasing ? `叠加 ${experiment.foldCount} 组` : "无明显折叠"}
+            </span>
+          </div>
+          <svg viewBox="0 0 760 280" className="mt-3 h-[250px] w-full rounded-[22px] bg-[#fffdf8]">
+            <rect x="0" y="0" width="760" height="280" rx="22" fill="#fffdf8" />
+            <line x1="52" y1="224" x2="708" y2="224" stroke="#e7d6b7" strokeWidth="2" />
+            {experiment.sequenceTicks.map((tick) => (
+              <g key={tick.label}>
+                <line
+                  x1={tick.x}
+                  y1="42"
+                  x2={tick.x}
+                  y2="224"
+                  stroke={tick.tone === "risk" ? "#fed7aa" : "#e8ddc7"}
+                  strokeDasharray={tick.tone === "risk" ? "8 8" : "0"}
+                  strokeWidth="1.4"
+                />
+                <text x={tick.x} y="250" textAnchor="middle" fill="#8a6b47" fontSize="12">
+                  {tick.label}
+                </text>
+              </g>
+            ))}
+            <path
+              d={experiment.originalSequencePath}
+              fill="none"
+              stroke="#94a3b8"
+              strokeWidth="2.2"
+              strokeDasharray="7 7"
+              opacity="0.72"
+            />
+            <path
+              d={experiment.reconstructedSequencePath}
+              fill="none"
+              stroke={experiment.aliasing ? "#f97316" : "#0f766e"}
+              strokeWidth="3.6"
+            />
+            {experiment.reconstructedSequence.map((point) => (
+              <g key={`reconstructed-${point.index}`}>
+                <line
+                  x1={point.x}
+                  y1="224"
+                  x2={point.x}
+                  y2={point.y}
+                  stroke={experiment.aliasing ? "#f97316" : "#0f766e"}
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                  opacity="0.78"
+                />
+                <circle cx={point.x} cy={point.y} r="3.8" fill={experiment.aliasing ? "#fb923c" : "#14b8a6"} />
+              </g>
+            ))}
+          </svg>
         </div>
       </div>
 
