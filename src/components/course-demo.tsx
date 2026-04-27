@@ -2437,21 +2437,28 @@ function FrequencySamplingPanel() {
               {experiment.aliasing ? `叠加 ${experiment.foldCount} 组` : "无明显折叠"}
             </span>
           </div>
-          <svg viewBox="0 0 760 280" className="mt-3 h-[250px] w-full rounded-[22px] bg-[#fffdf8]">
-            <rect x="0" y="0" width="760" height="280" rx="22" fill="#fffdf8" />
-            <line x1="52" y1={176} x2="708" y2={176} stroke="#e7d6b7" strokeWidth="2" />
+          <svg viewBox="0 0 760 340" className="mt-3 h-[300px] w-full rounded-[22px] bg-[#fffdf8]">
+            <rect x="0" y="0" width="760" height="340" rx="22" fill="#fffdf8" />
+            <line
+              x1="52"
+              y1={experiment.sequenceAxisY}
+              x2="708"
+              y2={experiment.sequenceAxisY}
+              stroke="#e7d6b7"
+              strokeWidth="2"
+            />
             {experiment.sequenceTicks.map((tick) => (
               <g key={tick.label}>
                 <line
                   x1={tick.x}
-                  y1="42"
+                  y1="52"
                   x2={tick.x}
                   y2={tick.axisY}
                   stroke={tick.tone === "risk" ? "#fed7aa" : "#e8ddc7"}
                   strokeDasharray={tick.tone === "risk" ? "8 8" : "0"}
                   strokeWidth="1.4"
                 />
-                <text x={tick.x} y="250" textAnchor="middle" fill="#8a6b47" fontSize="12">
+                <text x={tick.x} y={experiment.sequenceLabelY} textAnchor="middle" fill="#8a6b47" fontSize="12">
                   {tick.label}
                 </text>
               </g>
@@ -2474,7 +2481,7 @@ function FrequencySamplingPanel() {
               <g key={`reconstructed-${point.index}`}>
                 <line
                   x1={point.x}
-                  y1={176}
+                  y1={experiment.sequenceAxisY}
                   x2={point.x}
                   y2={point.y}
                   stroke={experiment.aliasing ? "#f97316" : "#0f766e"}
@@ -2978,8 +2985,9 @@ function buildFrequencySamplingExperiment({
     72,
     Math.max(32, normalizedSequenceLength, normalizedSampleCount * (aliasing ? 1 : 2)),
   );
-  const sequenceAxisY = 176;
-  const sequenceAmplitude = 92;
+  const sequenceAxisY = 178;
+  const sequenceAmplitude = 96;
+  const sequenceLabelY = 312;
   const originalValues = Array.from({ length: visibleCount }, (_, index) =>
     index < sequence.length ? sequence[index] : 0,
   );
@@ -3031,6 +3039,8 @@ function buildFrequencySamplingExperiment({
     originalSequencePath: formatChartPoints(originalSequence),
     reconstructedSequence,
     reconstructedSequencePath: formatChartPoints(reconstructedSequence),
+    sequenceAxisY,
+    sequenceLabelY,
     frequencyTicks: [
       { x: 52, label: "-π" },
       { x: 380, label: "0" },
