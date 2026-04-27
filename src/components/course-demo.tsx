@@ -2439,14 +2439,14 @@ function FrequencySamplingPanel() {
           </div>
           <svg viewBox="0 0 760 280" className="mt-3 h-[250px] w-full rounded-[22px] bg-[#fffdf8]">
             <rect x="0" y="0" width="760" height="280" rx="22" fill="#fffdf8" />
-            <line x1="52" y1="224" x2="708" y2="224" stroke="#e7d6b7" strokeWidth="2" />
+            <line x1="52" y1={176} x2="708" y2={176} stroke="#e7d6b7" strokeWidth="2" />
             {experiment.sequenceTicks.map((tick) => (
               <g key={tick.label}>
                 <line
                   x1={tick.x}
                   y1="42"
                   x2={tick.x}
-                  y2="224"
+                  y2={tick.axisY}
                   stroke={tick.tone === "risk" ? "#fed7aa" : "#e8ddc7"}
                   strokeDasharray={tick.tone === "risk" ? "8 8" : "0"}
                   strokeWidth="1.4"
@@ -2474,7 +2474,7 @@ function FrequencySamplingPanel() {
               <g key={`reconstructed-${point.index}`}>
                 <line
                   x1={point.x}
-                  y1="224"
+                  y1={176}
                   x2={point.x}
                   y2={point.y}
                   stroke={experiment.aliasing ? "#f97316" : "#0f766e"}
@@ -2978,6 +2978,8 @@ function buildFrequencySamplingExperiment({
     72,
     Math.max(32, normalizedSequenceLength, normalizedSampleCount * (aliasing ? 1 : 2)),
   );
+  const sequenceAxisY = 176;
+  const sequenceAmplitude = 92;
   const originalValues = Array.from({ length: visibleCount }, (_, index) =>
     index < sequence.length ? sequence[index] : 0,
   );
@@ -2999,7 +3001,7 @@ function buildFrequencySamplingExperiment({
     values.map((value, index) => ({
       index,
       x: sequenceX(index),
-      y: 224 - (value / maxSequenceMagnitude) * 138,
+      y: sequenceAxisY - (value / maxSequenceMagnitude) * sequenceAmplitude,
     }));
   const originalSequence = mapSequence(originalValues);
   const reconstructedSequence = mapSequence(reconstructedValues);
@@ -3037,6 +3039,7 @@ function buildFrequencySamplingExperiment({
     sequenceTicks: sequenceTickCandidates.map((tick) => ({
       ...tick,
       x: sequenceX(tick.index),
+      axisY: sequenceAxisY,
     })),
   };
 }
